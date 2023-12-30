@@ -112,7 +112,7 @@ class TimeSeriesCore():
                 total_loss += self.loss_function(output, y).item()
 
         avg_val_loss = total_loss / num_batches
-        print(f'val loss: {avg_val_loss}')
+        print(f'Val loss: {avg_val_loss}')
         
         return avg_val_loss
 
