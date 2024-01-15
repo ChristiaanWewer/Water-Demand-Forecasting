@@ -107,33 +107,20 @@ class LSTM(nn.Module):
 
         hx, cx = self.historic_lstm_encoder(xy_historic)
 
+
+        # historic
         xy = xy_historic[:, -1, :].unsqueeze(1)
         target_placeholders = torch.zeros(batch_size, self.prediction_horizon_length, len(self.quantiles))
 
         for i in range(self.prediction_horizon_length):
 
             xy, hx, cx = self.lstm_decoder(xy, hx, cx)
-            
-            # dimension of xy: [batch_size, 1, hidden_size]
-            # squeeze to [batch_size, hidden_size], use hidden layer to get [batch_size, nr of quantiles]
-            y_quantiles = self.quantile_layer(xy.squeeze(1))
-
-            # add y to target_placeholders
-            # compute expected value of the nr of quantiles over that dimension
-
-            target_placeholders[:,i,:] = y_quantiles
-
-            # combine quantiles to get y, make sure the weights of this layer are add up to 1
-            y = self.combine_quantiles_layer(y_quantiles)
-
-
-            # unsqueeze back to [batch_size, 1, nr_target_features], concat with x[future] features to get original size
-            xy = torch.cat((y, x_future[:,i,:]), dim=-1).unsqueeze(1)
+        
 
         return target_placeholders
 
 
-class TimeSeriesLSTM(TimeSeriesCore):
+class TimeSeriesLSTMCNN(TimeSeriesCore):
     def __init__(
             self,  
             df_train,                                      

@@ -11,6 +11,7 @@ class TimeSeriesDataset(Dataset):
             future_features=None, 
             historic_sequence_length=5, 
             prediction_horizon_length=1, 
+            use_historic_target=True,
             predict=False
         ): 
         """
@@ -39,6 +40,7 @@ class TimeSeriesDataset(Dataset):
         self.prediction_horizon_length = prediction_horizon_length
         self.predict = predict
         self.data_frames = dataframes
+        self.use_historic_target = use_historic_target
 
         self.lens = [] #len(self.dataframe) - self.historic_sequence_length - self.prediction_horizon_length + 1
         self.X_historic = []
@@ -71,8 +73,19 @@ class TimeSeriesDataset(Dataset):
         """
 
         # load data from dataframe into tensors
-        if not self.predict:
-            self.y.append(torch.tensor(dataframe[self.target_feature].values).float())
+        if not self.predict or self.use_historic_target:
+
+            y = torch.tensor(dataframe[self.target_feature].values).float()
+            if y.dim() == 1:
+                y = y.unsqueeze(1)
+
+            self.y.append(y)
+
+        # if self.use_historic_target:
+        #     X_historic_target = torch.tensor(dataframe[self.target_feature].values).float()
+        #     if X_historic_target.dim() == 1:
+        #         X_historic_target = X_historic_target.unsqueeze(1)
+        #     self.X_historic_target.append(X_historic_target)
         
         if self.historic_features:
 
@@ -136,7 +149,10 @@ class TimeSeriesDataset(Dataset):
             if index < len_:
                 break
             index -= len_
-        
+
+        if self.use_historic_target:
+            x['historic_target'] = self.y[ds_nr][index:index+self.historic_sequence_length,:]
+
         if self.historic_features is not None:
             x['historic'] = self.X_historic[ds_nr][index:index+self.historic_sequence_length,:]
         
@@ -147,4 +163,4 @@ class TimeSeriesDataset(Dataset):
         if self.predict:
             return x
         else:
-            return x, self.y[ds_nr][index+self.historic_sequence_length:index+self.historic_sequence_length+self.prediction_horizon_length]
+            return x, self.y[ds_nr][index+self.historic_sequence_length:index+self.historic_sequence_length+self.prediction_horizon_length,:]
